@@ -946,6 +946,12 @@ function test.renorm()
    checkMultiDevice(x, 'renorm', 4, 2, maxnorm)
 end
 
+function test.histc()
+  local x = torch.Tensor{ 2, 4, 2, 2, 5, 4 }
+  local y = torch.IntTensor()
+  compareFloatAndCuda(x, 'histc', y, 5, 1, 5)
+end
+
 function test.indexSelect()
    --  test for speed
    local n_row = math.random(minsize,maxsize)

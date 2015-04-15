@@ -91,6 +91,7 @@ THC_API float THCudaTensor_normall(THCState *state, THCudaTensor *self, float va
 THC_API void  THCudaTensor_norm(THCState *state, THCudaTensor* self, THCudaTensor* src, float value, long dimension);
 THC_API void  THCudaTensor_renorm(THCState *state, THCudaTensor* self, THCudaTensor* src, float value, long dimension, float max_norm);
 THC_API float THCudaTensor_dist(THCState *state, THCudaTensor *self, THCudaTensor *src, float value);
+THC_API void THCudaTensor_histc(THCState *state, THCudaTensor *self, THCudaTensor *src, long nbins, float minvalue, float maxvalue);
 
 THC_API void THCudaTensor_rand(THCState *state, THCudaTensor *r_, THLongStorage *size);
 THC_API void THCudaTensor_randn(THCState *state, THCudaTensor *r_, THLongStorage *size);

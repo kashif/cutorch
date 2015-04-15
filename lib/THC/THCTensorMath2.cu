@@ -11,6 +11,9 @@
 #include <thrust/functional.h>
 #include <thrust/reduce.h>
 #include <thrust/inner_product.h>
+#include <thrust/sort.h>
+#include <thrust/binary_search.h>
+#include <thrust/adjacent_difference.h>
 
 #ifndef DIVUP
 #define DIVUP(x, y) (((x) + (y) - 1) / (y))
@@ -540,6 +543,63 @@ void THCudaTensor_renorm(THCState *state, THCudaTensor* self, THCudaTensor* src,
   THCudaTensor_resizeAs(state, self, self_);
   THCudaTensor_freeCopyTo(state, self_, self);
   THCudaTensor_free(state, data);
+}
+
+void THCudaTensor_histc(THCState *state, THCudaTensor *hist, THCudaTensor *src, long nbins, float minvalue, float maxvalue)
+{
+  hist = THCudaTensor_newContiguous(state, hist);
+  src = THCudaTensor_newContiguous(state, src);
+  long size = THCudaTensor_nElement(state, src);
+  float minval;
+  float maxval;
+  float bins;
+  THCudaTensor *clone;
+
+  THLongStorage *num_bins = THCudaTensor_newSizeOf(state, src);
+  THLongStorage_set(num_bins, nbins, 1);
+  THCudaTensor_resize(state, hist, num_bins, NULL);
+  THCudaTensor_zero(state, hist);
+
+  minval = minvalue;
+  maxval = maxvalue;
+  if (minval == maxval)
+  {
+    minval = THCudaTensor_minall(state, src);
+    maxval = THCudaTensor_maxall(state, src);
+  }
+  if (minval == maxval)
+  {
+    minval = minval - 1;
+    maxval = maxval + 1;
+  }
+  bins = (float)(nbins)-1e-6;
+
+  clone = THCudaTensor_newWithSize1d(state, THCudaTensor_nElement(state, src));
+  THCudaTensor_copy(state, clone, src);
+  THCudaTensor_add(state, clone, clone, -minval);
+  THCudaTensor_div(state, clone, clone, (maxval-minval));
+  THCudaTensor_mul(state, clone, clone, bins);
+  THCudaTensor_floor(state, clone, clone);
+  THCudaTensor_add(state, clone, clone, 1);
+
+  thrust::device_ptr<float> clone_data(THCudaTensor_data(state, clone));
+  thrust::device_ptr<float> hist_data(THCudaTensor_data(state, hist));
+
+  // sort clone vector
+  thrust::sort(clone_data, clone_data+size);
+
+  // find the end of each bin of values
+  thrust::counting_iterator<int> search_begin(0);
+  thrust::upper_bound(clone_data, clone_data+size,
+                      search_begin, search_begin+nbins,
+                      hist_data);
+
+  // compute the histogram by taking differences of the cumulative histogram
+  thrust::adjacent_difference(hist_data, hist_data+nbins,
+                              hist_data);
+
+  THCudaTensor_free(state, clone);
+  THCudaTensor_free(state, src);
 }
 
 struct dist_functor

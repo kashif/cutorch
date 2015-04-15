@@ -607,6 +607,14 @@ for _,name in ipairs({"var", "std"}) do
          {name="boolean", default=false}})
 end
 
+wrap("histc",
+     cname("histc"),
+     {{name=Tensor, default=true, returned=true},
+      {name=Tensor},
+      {name="long",default=100},
+      {name=real,default=0},
+      {name=real,default=0}})
+
 wrap("norm",
      cname("normall"),
      {{name=Tensor},
